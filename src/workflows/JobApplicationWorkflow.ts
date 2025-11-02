@@ -15,9 +15,10 @@ export interface JobApplicationResult {
   interviewTips: string;
 }
 
-export class JobApplicationWorkflow extends WorkflowEntrypoint<Env, JobApplicationParams> {
+export class JobApplicationWorkflow extends WorkflowEntrypoint<any, JobApplicationParams> {
   async run(event: WorkflowEvent<JobApplicationParams>, step: WorkflowStep) {
     const { jobDescription, resumeText, jobTitle, company, userId } = event.payload;
+    const workflowId = (event as any).instanceId || (event as any).id || 'unknown';
 
     // Step 1: Analyze the job description
     const analysis = await step.do("analyze-job", async () => {
@@ -91,11 +92,16 @@ Provide 5-7 targeted interview preparation tips, including likely questions and 
     });
 
     // Return all results
-    return {
+    const result = {
       analysis,
       tailoredResume,
       coverLetter,
       interviewTips,
     };
+    
+    // Log the complete result
+    console.log('Workflow completed successfully:', JSON.stringify(result, null, 2));
+    
+    return result;
   }
 }

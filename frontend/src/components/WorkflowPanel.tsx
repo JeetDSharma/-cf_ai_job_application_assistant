@@ -159,29 +159,56 @@ function WorkflowPanel({ userId }: WorkflowPanelProps) {
   };
 
   const pollWorkflowStatus = async (id: string) => {
-    const maxAttempts = 60; // 5 minutes max
+    const maxAttempts = 120; // 10 minutes max (AI workflow takes time)
     let attempts = 0;
 
     const poll = async () => {
       try {
         const response = await fetch(`${API_BASE_URL}/workflow/${id}`);
-        const data = await response.json();
-
-        if (data.status === "complete" && data.output) {
-          setResult(data.output);
+        
+        if (!response.ok) {
+          console.error('Workflow status check failed:', response.status, response.statusText);
+          setError(`Failed to check workflow status: ${response.statusText}`);
           setIsRunning(false);
-        } else if (data.status === "error") {
-          setError("Workflow failed. Please try again.");
+          return;
+        }
+        
+        const data = await response.json();
+        console.log('Workflow status:', data.status, 'Has output:', !!data.output, 'Attempt:', attempts + 1, 'Full response:', data);
+
+        // Cloudflare Workflows return status as: 'queued', 'running', 'complete', 'errored', 'terminated', 'unknown'
+        if (data.status === "complete" || data.status === "Complete") {
+          if (data.output && typeof data.output === 'object') {
+            console.log('Workflow completed successfully with output');
+            setResult(data.output);
+            setIsRunning(false);
+          } else {
+            console.warn('Status is complete but output is missing or invalid:', data.output);
+            // Keep polling if status is complete but output not ready
+            if (attempts < maxAttempts) {
+              attempts++;
+              setTimeout(poll, 5000);
+            } else {
+              setError("Workflow completed but no output received. Please try again.");
+              setIsRunning(false);
+            }
+          }
+        } else if (data.status === "error" || data.status === "errored" || data.status === "terminated") {
+          console.error('Workflow error:', data);
+          setError(`Workflow failed: ${data.error || 'Unknown error'}. Please try again.`);
           setIsRunning(false);
         } else if (attempts < maxAttempts) {
+          // Still running or queued
           attempts++;
           setTimeout(poll, 5000); // Poll every 5 seconds
         } else {
-          setError("Workflow timed out. Please try again.");
+          console.error('Workflow timed out after', maxAttempts * 5, 'seconds. Last status:', data.status);
+          setError(`Workflow timed out after ${maxAttempts * 5 / 60} minutes. The job application generation may take longer than expected. Please try with a shorter resume or job description.`);
           setIsRunning(false);
         }
       } catch (err) {
-        setError("Failed to check workflow status.");
+        console.error('Workflow polling error:', err);
+        setError("Failed to check workflow status. Please ensure the backend is running.");
         setIsRunning(false);
       }
     };

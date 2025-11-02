@@ -57,7 +57,7 @@ app.post("/api/chat", async (c) => {
     const { messages } = await historyResponse.json() as { messages: any[] };
 
     // Call Workers AI with conversation context
-    const aiResponse = await c.env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
+    const aiResponse: any = await c.env.AI.run("@cf/meta/llama-3.3-70b-instruct-fp8-fast", {
       messages: messages.map((m: any) => ({
         role: m.role,
         content: m.content,
@@ -66,7 +66,8 @@ app.post("/api/chat", async (c) => {
       temperature: 0.7,
     });
 
-    const assistantMessage = aiResponse.response as string;
+    // Handle AI response - can be string or object with response property
+    const assistantMessage = typeof aiResponse === 'string' ? aiResponse : (aiResponse.response || aiResponse.text || String(aiResponse));
 
     // Save assistant response to history
     await conversationStub.fetch(`http://do/message`, {
@@ -157,15 +158,62 @@ app.get("/api/workflow/:workflowId", async (c) => {
     const workflowId = c.req.param("workflowId");
     
     const instance = await c.env.JOB_WORKFLOW.get(workflowId);
+    const statusInfo: any = await instance.status();
+    
+    // Log full status for debugging
+    console.log(`Workflow ${workflowId} FULL status info:`, JSON.stringify(statusInfo, null, 2));
+    
+    // Check if workflow has completed and has output
+    let output = null;
+    let finalStatus = statusInfo?.status || "running";
+    
+    // Try different ways to get the output
+    if (statusInfo) {
+      // Check if output is directly in status
+      if (statusInfo.output) {
+        output = statusInfo.output;
+        finalStatus = "complete";
+      }
+      // Or if there's a result field
+      else if (statusInfo.result) {
+        output = statusInfo.result;
+        finalStatus = "complete";
+      }
+      // Or check the status indicates completion
+      else if (finalStatus === "complete" || finalStatus === "success") {
+        // Try to get output from instance
+        try {
+          const instanceOutput = await (instance as any).output();
+          if (instanceOutput) {
+            output = instanceOutput;
+          }
+        } catch (e) {
+          console.log('Could not get output from instance:', e);
+        }
+      }
+    }
     
     return c.json({
       workflowId,
-      status: instance.status,
-      output: await instance.output,
+      status: finalStatus,
+      output: output,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Workflow status error:", error);
-    return c.json({ error: "Failed to get workflow status" }, 500);
+    
+    // Handle instance not found
+    if (error.message?.includes('not_found')) {
+      return c.json({
+        workflowId: c.req.param("workflowId"),
+        status: "not_found",
+        output: null,
+      });
+    }
+    
+    return c.json({ 
+      error: "Failed to get workflow status",
+      message: error.message || String(error)
+    }, 500);
   }
 });
 

@@ -143,3 +143,25 @@ This document tracks AI assistance used during development of the AI Job Applica
 - Project structure and organization
 
 ---
+
+### 7. Workflow Timeout Debugging
+
+**Context:** Workflow was timing out after 5 minutes when processing job applications with multiple AI steps.
+
+**Prompt:**
+> The workflow is timing out with "Workflow timed out. Please try again." Help me debug and fix the polling logic and backend workflow status endpoint.
+
+**AI Assistance:**
+- Added better error logging and debugging to frontend polling
+- Identified issue with backend workflow status endpoint not properly handling running workflows
+- Provided code to handle TypeScript type issues with Cloudflare Workflows API
+- Suggested increasing timeout from 5 minutes to 10 minutes
+
+**My Decisions:**
+- Extended timeout to 10 minutes (reasonable for 4 sequential AI model calls)
+- Added comprehensive console logging for debugging
+- Implemented graceful error handling for incomplete workflows
+- Used type assertions where Cloudflare Workflows types are incomplete
+- Decided to keep detailed logging for production debugging
+
+---
