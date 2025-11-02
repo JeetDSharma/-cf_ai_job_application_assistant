@@ -20,13 +20,13 @@ script_name = "ai-job-assistant"
 
 [[migrations]]
 tag = "v1"
-new_classes = ["ConversationMemory"]
+new_sqlite_classes = ["ConversationMemory"]
 
-# KV namespace for additional state (optional)
-[[kv_namespaces]]
-binding = "KV"
-id = "your_kv_id"
-preview_id = "preview_kv_id"
+# KV namespace for additional state (optional, commented out for now)
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "your_kv_id"
+# preview_id = "preview_kv_id"
 
 # Environment variables (set these in Cloudflare dashboard or via wrangler secret)
 [vars]

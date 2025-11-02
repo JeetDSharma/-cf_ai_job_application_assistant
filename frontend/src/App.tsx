@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Briefcase, Send, Loader2, Sparkles, FileText, RotateCcw } from 'lucide-react'
+import { useState } from 'react'
+import { Briefcase, Send, Sparkles, FileText } from 'lucide-react'
 import Chat from './components/Chat'
 import WorkflowPanel from './components/WorkflowPanel'
 

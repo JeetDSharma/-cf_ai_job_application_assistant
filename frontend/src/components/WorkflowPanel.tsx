@@ -38,7 +38,7 @@ function WorkflowPanel({ userId }: WorkflowPanelProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
-  const [workflowId, setWorkflowId] = useState<string | null>(null);
+  const [, setWorkflowId] = useState<string | null>(null);
   const [result, setResult] = useState<WorkflowResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
